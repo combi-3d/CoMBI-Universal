@@ -9,7 +9,7 @@ LED 4x
 CC-BY-NC
  */
  
- volatile byte state = LOW;  //handle direction for sliding microtome
+volatile byte state = LOW;  //handle direction for sliding microtome
 int sensorVal;              //Value of Hall-effect sensor 
 
 void setup() {
