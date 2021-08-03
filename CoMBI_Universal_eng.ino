@@ -6,7 +6,7 @@ Hall-effect sensor, unipolar-type, internal pull-up resistor. Unisonic SK8552
 Arduino UNO, ATmega328P
 Optocouplar Toshiba TLP785GB 2x
 LED 4x
-CC-BY-NC
+(c)2021 Yuki Tajika, CC-BY-NC
  */
  
 volatile byte state = LOW;  //handle direction for sliding microtome
