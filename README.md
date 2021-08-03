@@ -1,5 +1,5 @@
 # CoMBI-Universal (prototype)
-This CoMBI controller is compatible with any microtomes. Hall sensor detect handle position and sync camera shutter release by ATmega328P. 
+This CoMBI controller is compatible with any microtomes. A Hall sensor detects handle position and syncs camera shutter release using ATmega328P and optocoupler.
 
 The codes (.ino) were written by Arduino IDE. The circuit (.png) was made using a universal board. Of course, you can make it with a breadboard. Essential parts are indicated in the code file (.ino).
 
