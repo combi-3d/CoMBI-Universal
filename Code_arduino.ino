@@ -9,10 +9,9 @@ Shutter timing (D12):
   DIP2=OFF(HIGH): passed from the magnet (recommended)
   DIP2=ON(LOW):   approached to the magnet
 
-Microtome type (D9):   v11 for breadboard, this v12 for PCB. Replace D9 and D10, LED 4 and 6 (Sliding or Rotary)
+Microtome type (D9):   Sliding or Rotary
 
-Serial imaging (D10):
-  ON or OFF
+Serial imaging (D10):  ON or OFF
 
 LED resistance (Green-Aqua-Lavender-Lemon)(510-120-120-120 Bright), (670-220-220-220 moderate)
 */
@@ -29,40 +28,40 @@ void setup() {
   pinMode(6, OUTPUT);        //LED Labender-120 ohm, Sensor HIGH/LOW when sliding mode, and Serial imaging ON
   pinMode(7, OUTPUT);        //LED Lemon-120 ohm, Optocouplar_Release (7 and 8)
   pinMode(8, OUTPUT);        //Optocouplar_Release (7 and 8)
-  pinMode(9, INPUT_PULLUP);  //SW Mode, sliding or rotary (SWつながるとGND = LOW、滑走式に設定する)
-  pinMode(10, INPUT_PULLUP); //SW Serial imaging ON/OFF (SWつながるとGND = LOW、撮影開始にする)
-  pinMode(11, INPUT_PULLUP); //SW Sensor Type, 0-1(Uni) or 1-0(TI), どちらでも通過後にShutterをきるように、統一させる。
-  pinMode(12, INPUT_PULLUP); //割り込み、 FALLING or RISING
+  pinMode(9, INPUT_PULLUP);  //SW Mode, sliding or rotary (SW ON=GND=LOW= sliding mode)
+  pinMode(10, INPUT_PULLUP); //SW Serial imaging ON/OFF (SW ON=GND=LOW= serial ON)
+  pinMode(11, INPUT_PULLUP); //SW Sensor Type, 0-1-0(Unisonic) or 1-0-1(TexasInstruments)
+  pinMode(12, INPUT_PULLUP); //Shutter timing
 
-  attachInterrupt(digitalPinToInterrupt(2), release, CHANGE); //ファイル１１。ここをCHANGEにして、releaseのなかで、HIGH, LOWを区別してみる。通過後、通過前を選択できるように。
+  attachInterrupt(digitalPinToInterrupt(2), release, CHANGE); //CHANGE allow to select HIGH or LOW in void release. Release when reached or passed.
 }
 
-void loop() {                    //センサー値をLEDで可視化。モードによってLED4赤と6緑
+void loop() {                    //Visualize sensor value using LED4 and 6.
   sensorVal = digitalRead(2);
 
-  if (digitalRead(11) == HIGH) {   //SW sensor type, TexasIーFAは、1->0
+  if (digitalRead(11) == HIGH) {   //SW sensor type, TexasInst-FA, 1->0
 
       if (digitalRead(9) == LOW) {
-        digitalWrite(4, !sensorVal);            //滑走式モード(LOW=switchON=GND)は、LED4赤をON
+        digitalWrite(4, !sensorVal);            //Sliding mode (LOW=SWmode ON=GND), LED4 ON
         digitalWrite(6, sensorVal);
       } else {
-        digitalWrite(4, sensorVal);           //回転式モード(HIGH=switchOFF=5V)は、LED6緑をON。磁気を感知すると赤と緑が反転する。
+        digitalWrite(4, sensorVal);           //Rotary mode (HIGH=SWmode OFF=5V), LED6 ON
         digitalWrite(6, !sensorVal);
       }
   }
 
-  if (digitalRead(11) == LOW) {   //SW sensor type, Unisonicは、0->1、反転して利用する。
+  if (digitalRead(11) == LOW) {   //SW sensor type, Unisonic, 0->1 display inverted pattern using "!".
 
       if (digitalRead(9) == LOW) {
-        digitalWrite(4, sensorVal);            //滑走式モード(LOW=switchON=GND)は、LED4赤をON
+        digitalWrite(4, sensorVal);            //Sliding mode(LOW=SWmode ON=GND), LED4 ON
         digitalWrite(6, !sensorVal);
       } else {
-        digitalWrite(4, !sensorVal);             //回転式モード(HIGH=switchOFF=5V)は、LED6緑をON。磁気を感知すると赤と緑が反転する。
+        digitalWrite(4, !sensorVal);             //Rotary mode(HIGH=SWmode OFF=5V), LED6 ON
         digitalWrite(6, sensorVal);
       }
   }
 
-  if (digitalRead(10) == LOW) {                  //連続撮影ONのとき focusつなぎっぱなし（安定したシャッターに必要）。連続OFFではOFF。
+  if (digitalRead(10) == LOW) {                  //Serial ON, Focus pin must connects with GND pin contineously, for stable release.
     digitalWrite(3, HIGH); //OC_focus ON
     digitalWrite(5, HIGH); //LED blue ON
   } else {
@@ -71,22 +70,22 @@ void loop() {                    //センサー値をLEDで可視化。モード
   }
 }
 
-void release(){            //センサー値がCHANGEしたとき、割り込む。モードpin10、センサーpin11、タイミングpin12、連続pin9で条件分け。
+void release(){            //When sensor value CHANGE, interrupt. Choose combination of states; Mode D10, sensor D11, timing D12, and serial D9. 
 
-if (digitalRead(11) == HIGH && digitalRead(12) == HIGH || digitalRead(11) == LOW && digitalRead(12) == LOW){      //TI_FAで通過後、または、Unisonicで通過前, &&は優先
+if (digitalRead(11) == HIGH && digitalRead(12) == HIGH || digitalRead(11) == LOW && digitalRead(12) == LOW){   //TI_FA Release when passed, or Unisonic Release when reached, (&& is prior)
 
-if (digitalRead(2) == HIGH){      //TI_FA通過後、Unisonic通過前
+if (digitalRead(2) == HIGH){      //TI_FA Release when passed, or Unisonic Release when reached
 
-  if (digitalRead(10) == LOW){     //連続撮影ON＝LOWのとき
+  if (digitalRead(10) == LOW){     //Serial ON(＝LOW)
     
-      if (digitalRead(9) == LOW){      //滑走式(10, LOW)なら、stateをつかう。最初の割り込みのときはデフォルトのstate = LOW。
-        state = !state;                 //stateを反転。はじめの割り込みでは、LOWからHIGHになってシャッターおりる。次の割り込みでは、HIGHからLOWになり、シャッターおりない。
+      if (digitalRead(9) == LOW){      //Sliding (10, LOW), Use "state". When primary interuption, default state = LOW.
+        state = !state;                 //Invert "state". Primary interuption, LOW to HIGH releases shutter. 2nd interuption, HIGH to LOW does not release.
         digitalWrite(8, state);              //OC_release
         digitalWrite(7, state);              //LED OC_release
         delay(200);
         digitalWrite(8, LOW);
         digitalWrite(7, LOW);
-        } else {                        //回転式(10, HIGH)なら区別しない、stateを使わず。通過時にとにかくシャッター
+        } else {                        //Rotary mode(10, HIGH) release shutter anyway. No need to use "state".
         digitalWrite(8, HIGH);              //OC_release
         digitalWrite(7, HIGH);              //LED_OC_release
         delay(200);
@@ -95,16 +94,16 @@ if (digitalRead(2) == HIGH){      //TI_FA通過後、Unisonic通過前
         }
    }
   
-  if (digitalRead(10) == HIGH){     //連続撮影OFF＝HIGHのとき、LEDだけは光らせる。フォトカプラはなにもしない。
+  if (digitalRead(10) == HIGH){     //Serila OFF(＝HIGH), only LEDs indicate, optocouplars do nothing.
   
-      if (digitalRead(9) == LOW){             //モードが滑走式(10, LOW)
+      if (digitalRead(9) == LOW){             //Slinding mode (10, LOW)
         state = !state;
         digitalWrite(5, state);  //LED bleu
         digitalWrite(7, state);  //LED yellow
         delay(200);
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
-        } else {                                       //モードが回転式(10, HIGH)
+        } else {                               //Rotary mode (10, HIGH)
         digitalWrite(5, HIGH);  //LED blue
         digitalWrite(7, HIGH);  //LED yellow
         delay(200);
@@ -115,20 +114,20 @@ if (digitalRead(2) == HIGH){      //TI_FA通過後、Unisonic通過前
 }
 }
 
-if (digitalRead(11) == HIGH && digitalRead(12) == LOW || digitalRead(11) == LOW && digitalRead(12) == HIGH){      //TI_FAで通過前、または、Unisonicで通過後
+if (digitalRead(11) == HIGH && digitalRead(12) == LOW || digitalRead(11) == LOW && digitalRead(12) == HIGH){      //TI_FA releases when reached or Unisonic releases when passed
 
 if (digitalRead(2) == LOW){
 
-  if (digitalRead(10) == LOW){     //連続撮影ON＝LOWのとき
+  if (digitalRead(10) == LOW){     //Serial ON＝LOW
     
-      if (digitalRead(9) == LOW){      //滑走式(10, LOW)なら、stateをつかう。最初の割り込みのときはデフォルトのstate = LOW。
-        state = !state;                 //stateを反転。はじめの割り込みでは、LOWからHIGHになってシャッターおりる。次の割り込みでは、HIGHからLOWになり、シャッターおりない。
+      if (digitalRead(9) == LOW){      //Sliding (10, LOW) use "state". When primary interruption, default state = LOW
+        state = !state;                 //Invert "state". Primary interuption, LOW to HIGH releases shutter. 2nd interuption, HIGH to LOW does not release.
         digitalWrite(8, state);              //OC_release
         digitalWrite(7, state);              //LED OC_release
         delay(200);
         digitalWrite(8, LOW);
         digitalWrite(7, LOW);
-        } else {                        //回転式(10, HIGH)なら区別しない、stateを使わず。通過時にとにかくシャッター
+        } else {                        //Rotary (10, HIGH) release shutter anytime of passing. no need to use "state"
         digitalWrite(8, HIGH);              //OC_release
         digitalWrite(7, HIGH);              //LED_OC_release
         delay(200);
@@ -137,16 +136,16 @@ if (digitalRead(2) == LOW){
         }
    }
   
-  if (digitalRead(10) == HIGH){     //連続撮影OFF＝HIGHのとき、LEDだけは光らせる。フォトカプラはなにもしない。
+  if (digitalRead(10) == HIGH){     //Serial OFF(＝HIGH), LEDs indicate, but optocouplars do nothing
   
-      if (digitalRead(9) == LOW){             //モードが滑走式(10, LOW)
+      if (digitalRead(9) == LOW){             //Sliding mode(10, LOW)
         state = !state;
         digitalWrite(5, state);  //LED bleu
         digitalWrite(7, state);  //LED yellow
         delay(200);
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
-        } else {                                       //モードが回転式(10, HIGH)
+        } else {                                       //Rotary mode(10, HIGH)
         digitalWrite(5, HIGH);  //LED blue
         digitalWrite(7, HIGH);  //LED yellow
         delay(200);
