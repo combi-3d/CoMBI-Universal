@@ -1,7 +1,7 @@
-# CoMBI-Universal (prototype)
+# CoMBI-Universal (PCB type)
 This CoMBI controller is compatible with any microtomes. A Hall sensor detects handle position and syncs camera shutter release using ATmega328P and optocoupler.
 
-The codes (.ino) were written by Arduino IDE. The circuit (.png) was made using a universal board. Of course, you can make it with a breadboard. Essential parts are indicated in the code file (.ino).
+The codes (.ino) were written by Arduino IDE. The circuit (.png) was made using KiCAD for PDB. Of course, you can make it with a breadboard. Parts are listed in the csv file.
 
 Attach a neodymium magnet (10 to 15 mm in diameter and 3 mm thick) to the handle of the microtome using double-sided tape or a rubber magnet with tape.
 
