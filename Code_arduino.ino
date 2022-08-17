@@ -1,23 +1,24 @@
 /* 
 Universal CoMBI (c)Yuki Tajika, 2021 (Oct.7)
-
 Hall sensor type (D11):
   DIP1=OFF(HIGH):  TexasInstruments DRV5032-FA unipolar, no-magnet=HIGH, magnet=LOW
   DIP1=ON(LOW):    Unisonic SK8552 unipolar,             no-magnet=LOW, magnet=HIGH
-
 Shutter timing (D12):
   DIP2=OFF(HIGH): passed from the magnet (recommended)
   DIP2=ON(LOW):   approached to the magnet
-
 Microtome type (D9):   Sliding or Rotary
-
 Serial imaging (D10):  ON or OFF
-
 LED resistance (Green-Aqua-Lavender-Lemon)(510-120-120-120 Bright), (670-220-220-220 moderate)
+
+2022-8-10
+Bug fix: delay (200) within interuption does not work. Instead, delayMicroseconds (1000) was used repeatedly.
+Improve: Focus fold temporally as needed, instead of continuously. Camera controll can be done during Serial ON.
+  
 */
 
 volatile byte state = LOW;  // for memo of handle movement; Forward or Backward. Use for interruption.
 int sensorVal;              //
+int contactTime = 150; 
 
 void setup() {
 
@@ -62,10 +63,8 @@ void loop() {                    //Visualize sensor value using LED4 and 6.
   }
 
   if (digitalRead(10) == LOW) {                  //Serial ON, Focus pin must connects with GND pin contineously, for stable release.
-    digitalWrite(3, HIGH); //OC_focus ON
     digitalWrite(5, HIGH); //LED blue ON
   } else {
-    digitalWrite(3, LOW);  //OC_focus OFF
     digitalWrite(5, LOW);  //LED blue OFF
   }
 }
@@ -80,33 +79,45 @@ if (digitalRead(2) == HIGH){      //TI_FA Release when passed, or Unisonic Relea
     
       if (digitalRead(9) == LOW){      //Sliding (10, LOW), Use "state". When primary interuption, default state = LOW.
         state = !state;                 //Invert "state". Primary interuption, LOW to HIGH releases shutter. 2nd interuption, HIGH to LOW does not release.
+        digitalWrite(3, state); 
         digitalWrite(8, state);              //OC_release
         digitalWrite(7, state);              //LED OC_release
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(8, LOW);
         digitalWrite(7, LOW);
+        digitalWrite(3, LOW);               //OC_focus OFF
         } else {                        //Rotary mode(10, HIGH) release shutter anyway. No need to use "state".
-        digitalWrite(8, HIGH);              //OC_release
-        digitalWrite(7, HIGH);              //LED_OC_release
-        delay(200);
+        digitalWrite(3, HIGH);              //OC_focus ON
+        digitalWrite(7, HIGH);              //OC_release
+        digitalWrite(8, HIGH);              //LED_OC_release
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(8, LOW);
         digitalWrite(7, LOW);
+        digitalWrite(3, LOW);               //OC_focus OFF
         }
    }
   
-  if (digitalRead(10) == HIGH){     //Serila OFF(＝HIGH), only LEDs indicate, optocouplars do nothing.
+  if (digitalRead(10) == HIGH){     //Serial OFF(＝HIGH), only LEDs indicate, optocouplars do nothing.
   
       if (digitalRead(9) == LOW){             //Slinding mode (10, LOW)
         state = !state;
         digitalWrite(5, state);  //LED bleu
         digitalWrite(7, state);  //LED yellow
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
         } else {                               //Rotary mode (10, HIGH)
         digitalWrite(5, HIGH);  //LED blue
         digitalWrite(7, HIGH);  //LED yellow
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
         }
@@ -122,17 +133,25 @@ if (digitalRead(2) == LOW){
     
       if (digitalRead(9) == LOW){      //Sliding (10, LOW) use "state". When primary interruption, default state = LOW
         state = !state;                 //Invert "state". Primary interuption, LOW to HIGH releases shutter. 2nd interuption, HIGH to LOW does not release.
+        digitalWrite(3, state);              //OC_focus
         digitalWrite(8, state);              //OC_release
         digitalWrite(7, state);              //LED OC_release
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(8, LOW);
         digitalWrite(7, LOW);
+        digitalWrite(3, LOW);
         } else {                        //Rotary (10, HIGH) release shutter anytime of passing. no need to use "state"
-        digitalWrite(8, HIGH);              //OC_release
-        digitalWrite(7, HIGH);              //LED_OC_release
-        delay(200);
-        digitalWrite(8, LOW);
-        digitalWrite(7, LOW);
+        digitalWrite(3, HIGH);              //OC_focus
+        digitalWrite(7, HIGH);              //OC_release
+        digitalWrite(8, HIGH);              //LED_OC_release
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
+        digitalWrite(8, LOW);               //LED_OC_release OFF
+        digitalWrite(7, LOW);               //OC_release OFF
+        digitalWrite(3, LOW);
         }
    }
   
@@ -142,13 +161,17 @@ if (digitalRead(2) == LOW){
         state = !state;
         digitalWrite(5, state);  //LED bleu
         digitalWrite(7, state);  //LED yellow
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
         } else {                                       //Rotary mode(10, HIGH)
         digitalWrite(5, HIGH);  //LED blue
         digitalWrite(7, HIGH);  //LED yellow
-        delay(200);
+          for(int j=0;j<contactTime;j++){
+            delayMicroseconds(1000);
+            }
         digitalWrite(5, LOW);
         digitalWrite(7, LOW);
         }
@@ -157,5 +180,3 @@ if (digitalRead(2) == LOW){
 }
 
 }
-
-
